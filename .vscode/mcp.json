@@ -1,0 +1,10 @@
+{
+	"servers": {
+		"random numbers": {
+			"url": "http://localhost:5251/mcp",
+			"type": "http"
+		}
+	},
+	"inputs": [
+	]
+}
