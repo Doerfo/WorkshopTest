@@ -1,86 +1,38 @@
-# .NET MCP Server Workshop Template
+# Copilot Instructions Setup MCP Server
 
-A comprehensive template for building Model Context Protocol (MCP) servers using .NET. This project demonstrates how to create a modern MCP server with both stdio and HTTP transport capabilities, enabling seamless integration with AI assistants and development tools.
+An MCP server that automates the setup of GitHub Copilot instruction files by analyzing project technology stacks, fetching baseline instructions from the awesome-copilot repository, and merging them with company-specific guidelines.
 
 ## Features
 
-- **MCP Server Implementation**: Full-featured MCP server built on .NET
-- **Dual Transport Support**:
-  - **stdio Transport**: For local process communication and integration with development tools
-  - **HTTP Transport**: For network-based communication and web service integration
-- **Modern .NET Architecture**: Leverages .NET 10 SDK features and best practices
-- **VS Code Integration**: Seamless setup for use with Visual Studio Code and GitHub Copilot
-- **Extensible Design**: Easy to customize and extend with your own tools and resources
+- **Automated Technology Detection**: Analyzes project structure to identify technologies (C#, TypeScript, React, Python, etc.)
+- **Baseline Instructions**: Fetches best practice instructions from [github/awesome-copilot](https://github.com/github/awesome-copilot)
+- **Company Guidelines**: Merges organizational coding standards with baseline instructions
+- **Smart Deduplication**: Automatically deduplicates content with company guidelines taking precedence
+- **Backup Management**: Creates timestamped backups when updating existing instruction files
+- **MCP Integration**: Works seamlessly with GitHub Copilot and other MCP-compatible clients
 
-## Prerequisites
+## Quick Start
 
-Before you begin, ensure you have the following installed:
-
-- **.NET 10 SDK**: Download and install from [dotnet.microsoft.com](https://dotnet.microsoft.com/download)
-  - Verify installation: `dotnet --version` (should show 10.x or higher)
-- **Visual Studio Code**: Download from [code.visualstudio.com](https://code.visualstudio.com/)
-- **GitHub Copilot Extension**: Install from the VS Code marketplace
-  - Requires an active GitHub Copilot subscription
-
-## Getting Started
-
-### Building the Project
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Doerfo/WorkshopTemplate.git
-   cd WorkshopTemplate
-   ```
-
-2. Restore dependencies:
-   ```bash
-   dotnet restore
-   ```
-
-3. Build the project:
-   ```bash
-   dotnet build
-   ```
-
-### Running the Server
-
-#### Using stdio Transport
-
-Run the server with stdio transport for local integration:
-
+### 1. Build and Run
 ```bash
-dotnet run --project <YourProjectName>
+cd SampleMcpServer
+dotnet build
+dotnet run
 ```
 
-#### Using HTTP Transport
+### 2. Configure in VS Code
 
-Run the server with HTTP transport for network access:
-
-```bash
-dotnet run --project <YourProjectName> -- --transport http --port 5000
-```
-
-The server will be accessible at `http://localhost:5000`.
-
-## Configuration
-
-### VS Code MCP Configuration
-
-To integrate this MCP server with VS Code and GitHub Copilot, create or update the MCP configuration file:
-
-**Location**: `~/.vscode/mcp.json` (Linux/macOS) or `%USERPROFILE%\.vscode\mcp.json` (Windows)
-
-**Configuration**:
+Add to your `~/.vscode/mcp.json`:
 
 ```json
 {
   "mcpServers": {
-    "dotnet-mcp-server": {
+    "copilot-instructions-setup": {
       "command": "dotnet",
       "args": [
         "run",
         "--project",
-        "/path/to/WorkshopTemplate/<YourProjectName>"
+        "/workspaces/WorkshopTest/SampleMcpServer"
       ],
       "env": {
         "DOTNET_ENVIRONMENT": "Development"
@@ -90,23 +42,70 @@ To integrate this MCP server with VS Code and GitHub Copilot, create or update t
 }
 ```
 
-**Configuration Options**:
+### 3. Use the Setup Prompt
 
-- **command**: The executable to run (`dotnet`)
-- **args**: Arguments passed to the command (includes the project path)
-- **env**: Environment variables for the server process
+In GitHub Copilot Chat or any MCP client:
 
-### Alternative: HTTP Transport Configuration
+```
+Use the setup-copilot-instructions prompt to set up my project at /path/to/my/project
+```
 
-For HTTP-based communication:
+The agent will:
+1. ✅ Detect technologies (C#, TypeScript, React, etc.)
+2. ✅ Fetch baselines from awesome-copilot
+3. ✅ Merge with company guidelines  
+4. ✅ Create instruction files:
+   - `.github/copilot-instructions.md` (repository-wide)
+   - `.github/instructions/{technology}.instructions.md` (per technology)
+
+## Available Tools
+
+The MCP server exposes these tools:
+
+- **ListAvailableTechnologies**: List all supported technologies
+- **DetectProjectTechnologies**: Analyze project to detect tech stack
+- **GetBaselineInstruction**: Fetch baseline from awesome-copilot
+- **GetCompanyGuideline**: Retrieve company-specific guidelines
+- **CreateRepositoryInstructionFile**: Generate `.github/copilot-instructions.md`
+- **CreateTechnologyInstructionFile**: Generate technology-specific files
+- **RefreshCache**: Manually refresh awesome-copilot cache
+
+## Adding Company Guidelines
+
+Create markdown files in `SampleMcpServer/Guidelines/`:
+
+**Naming Convention**: `{technology}[-{aspect}].md`
+
+**Example**: `SampleMcpServer/Guidelines/csharp-testing.md`
+
+```markdown
+---
+description: Company-specific C# testing guidelines
+technology: csharp
+aspect: testing
+---
+
+# C# Testing Standards
+
+- Use xUnit framework
+- 80% code coverage minimum
+- Follow Arrange-Act-Assert pattern
+
+[... more content ...]
+```
+
+Guidelines are automatically discovered and merged during setup!
+
+## Configuration
+
+Edit `appsettings.json` to customize:
 
 ```json
 {
-  "mcpServers": {
-    "dotnet-mcp-server-http": {
-      "url": "http://localhost:5000",
-      "transport": "http"
-    }
+  "GitHub": {
+    "Repository": "github/awesome-copilot",
+    "InstructionsPath": "instructions",
+    "CacheDurationHours": 24
   }
 }
 ```
@@ -114,27 +113,70 @@ For HTTP-based communication:
 ## Project Structure
 
 ```
-WorkshopTemplate/
-├── .gitignore          # .NET-specific ignore patterns
-├── README.md           # This file
-└── <YourProject>/      # Your MCP server implementation
-    ├── Program.cs      # Main entry point
-    ├── *.csproj        # Project configuration
-    └── ...             # Additional source files
+WorkshopTest/
+├── SampleMcpServer/
+│   ├── Program.cs              # MCP server configuration
+│   ├── Models/                 # Data models (TechnologyInfo, BaselineInstruction, etc.)
+│   ├── Services/               # Business logic services
+│   │   ├── TechnologyDetectionService.cs
+│   │   ├── GitHubService.cs
+│   │   ├── GuidelineService.cs
+│   │   └── InstructionMergeService.cs
+│   ├── Tools/                  # MCP tools
+│   │   ├── TechnologyDiscoveryTools.cs
+│   │   ├── BaselineInstructionTools.cs
+│   │   ├── GuidelineTools.cs
+│   │   └── InstructionFileTools.cs
+│   ├── Prompts/                # MCP prompts
+│   │   └── SetupCopilotInstructionsPrompt.cs
+│   ├── Guidelines/             # Company-specific guidelines
+│   │   ├── csharp-testing.md
+│   │   ├── typescript.md
+│   │   └── react.md
+│   └── appsettings.json        # Configuration
+└── specs/
+    └── 001-copilot-instructions-setup/  # Feature specification
 ```
 
-## Development Tips
+## Technology Detection
 
-- **Hot Reload**: Use `dotnet watch run` for automatic reloading during development
-- **Debugging**: Attach the VS Code debugger to troubleshoot issues
-- **Logging**: Configure logging levels in `appsettings.json` or environment variables
-- **Testing**: Create unit tests in a separate test project
+The server automatically detects:
 
-## Additional Resources
+- **C#**: `*.csproj`, `*.cs` files
+- **TypeScript**: `tsconfig.json`, `*.ts` files  
+- **JavaScript**: `package.json`, `*.js` files
+- **Python**: `requirements.txt`, `*.py` files
+- **Java**: `pom.xml`, `build.gradle`
+- **React**: `package.json` with react dependency
+- **Angular**: `angular.json`
+- **Vue**: `package.json` with vue dependency
+- **Go**: `go.mod`, `*.go` files
+- **Rust**: `Cargo.toml`, `*.rs` files
 
-- [Model Context Protocol Documentation](https://modelcontextprotocol.io/)
-- [.NET Documentation](https://docs.microsoft.com/dotnet/)
-- [GitHub Copilot Documentation](https://docs.github.com/copilot)
+## Example Workflow
+
+```
+1. User: "Setup Copilot instructions for my project"
+2. MCP Agent invokes DetectProjectTechnologies
+   → Finds C# and TypeScript
+3. Agent invokes GetBaselineInstruction for each
+   → Fetches csharp.instructions.md and typescript.instructions.md
+4. Agent invokes GetCompanyGuideline for each
+   → Loads csharp-testing.md and typescript.md from Guidelines/
+5. Agent invokes CreateTechnologyInstructionFile
+   → Merges baseline + guidelines
+   → Writes .github/instructions/csharp.instructions.md
+   → Writes .github/instructions/typescript.instructions.md
+6. Agent creates .github/copilot-instructions.md
+7. Result: Project now has tailored Copilot instructions!
+```
+
+## For More Details
+
+See the complete documentation in `specs/001-copilot-instructions-setup/`:
+- [quickstart.md](specs/001-copilot-instructions-setup/quickstart.md) - Detailed usage guide
+- [plan.md](specs/001-copilot-instructions-setup/plan.md) - Technical implementation plan
+- [contracts/mcp-tools.md](specs/001-copilot-instructions-setup/contracts/mcp-tools.md) - Full API contracts
 
 ## License
 
